@@ -137,6 +137,19 @@ ItemDB.fillLimit.ammo = 10
 ItemDB.fillLimit.artillery = 3
 ItemDB.fillLimit.fuel = 5
 
+---Returns the fuel category name of an item prototype, or nil if the item is not a fuel.
+---Factorio 2.1 replaced LuaItemPrototype.fuel_category (string) with
+---fuel_categories (array of strings, absent when empty). The mod tracks a single
+---category per item, so the first listed category is used.
+---@param proto LuaItemPrototype
+---@return string?
+function ItemDB.fuelCategoryOf(proto)
+    if (not proto) then return nil end
+    local cats = proto.fuel_categories
+    if (cats) then return cats[1] end
+    return nil
+end
+
 ---@param name string
 ---@return alItem
 function ItemDB.newItem(name)
@@ -152,8 +165,8 @@ function ItemDB.newItem(name)
         -- cInform(ammoType)
         obj.category = ammoCat
         obj.type = ItemDB.types.ammo
-    elseif (proto.fuel_category) then
-        obj.category = proto.fuel_category
+    elseif (ItemDB.fuelCategoryOf(proto)) then
+        obj.category = ItemDB.fuelCategoryOf(proto)
         obj.type = ItemDB.types.fuel
     end
 
@@ -262,7 +275,7 @@ function ItemDB.newFuel(proto)
     if (not proto) or (ItemDB.items()[proto.name]) then return nil end
     local obj = {} ---@type alItem
     obj.name = proto.name
-    obj.category = proto.fuel_category
+    obj.category = ItemDB.fuelCategoryOf(proto)
     if (not obj.category) then return end
     if (obj.category == "processed-chemical") then obj.category = "chemical" end
     obj.type = ItemDB.types.fuel
@@ -431,7 +444,7 @@ function ItemDB.getItemScore(name)
     -- local itemType = ItemDB.getType(name)
     local proto = prototypes.item[name]
     -- local types = ItemDB.types
-    if (proto.fuel_category) then
+    if (ItemDB.fuelCategoryOf(proto)) then
         return proto.fuel_value
     elseif (proto.get_ammo_type()) then
         return ItemDB.getTotalDamage(name)
@@ -447,7 +460,7 @@ function ItemDB.getType(name)
     if not proto then return nil end
     local ammoType = proto.get_ammo_type()
     if (ammoType) then return "ammo" end
-    local fuelCat = proto.fuel_category
+    local fuelCat = ItemDB.fuelCategoryOf(proto)
     if (fuelCat) then return "fuel" end
     return nil
 end
